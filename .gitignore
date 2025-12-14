@@ -49,3 +49,4 @@ screenshots/
 # Sensitive data (already in config, but good practice)
 # Uncomment if you want to exclude config files with credentials
 # src/main/resources/_config.properties
+src/main/resources/_config.properties

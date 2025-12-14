@@ -65,8 +65,9 @@ suite_name=NULL
 #=====================================================#
 
 #================ Test Data =========================#
-# Test user credentials (Gmail account for Chess.com)
-test_user_username=thanhtrungnsl2003@gmail.com
-test_user_email=thanhtrungnsl2003@gmail.com
-test_user_password=13122003@Abc
+# Test user credentials for Chess.com
+# Copy this file to _config.properties and update with your credentials
+test_user_username=your-email@example.com
+test_user_email=your-email@example.com
+test_user_password=your-password
 #=====================================================#
