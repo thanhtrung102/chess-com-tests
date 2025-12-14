@@ -1,0 +1,12 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Chess.com Regression Test Suite" verbose="1" parallel="classes" thread-count="3">
+    <test name="Regression Tests">
+        <classes>
+            <class name="com.chess.tests.NavigationTests"/>
+            <class name="com.chess.tests.LoginTests"/>
+            <class name="com.chess.tests.PlayModeTests"/>
+            <class name="com.chess.tests.PuzzleTests"/>
+            <class name="com.chess.tests.LearnTests"/>
+        </classes>
+    </test>
+</suite>
