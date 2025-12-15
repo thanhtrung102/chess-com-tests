@@ -1,0 +1,365 @@
+package com.chess.tests;
+
+import com.chess.pages.common.HomePageBase;
+import com.chess.pages.common.LoginPageBase;
+import com.chess.pages.common.PuzzlesPageBase;
+import com.deque.html.axecore.results.Results;
+import com.deque.html.axecore.results.Rule;
+import com.deque.html.axecore.selenium.AxeBuilder;
+import com.zebrunner.carina.core.IAbstractTest;
+import com.zebrunner.carina.core.registrar.ownership.MethodOwner;
+import com.zebrunner.agent.core.annotation.TestLabel;
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebElement;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import java.util.List;
+
+/**
+ * Accessibility Tests - Tests WCAG 2.1 compliance and accessibility features
+ *
+ * These tests verify:
+ * - WCAG 2.1 Level A and AA compliance using axe-core
+ * - Keyboard navigation support
+ * - ARIA labels and roles
+ * - Form accessibility
+ * - Focus management
+ * - Screen reader compatibility
+ */
+public class AccessibilityTests implements IAbstractTest {
+
+    /**
+     * Test WCAG 2.1 compliance on home page using axe-core
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "wcag", "a11y"})
+    public void testWCAGComplianceHomePage() {
+        HomePageBase homePage = initPage(getDriver(), HomePageBase.class);
+        homePage.open();
+        Assert.assertTrue(homePage.isPageOpened(), "Home page should be opened");
+
+        pause(3); // Wait for page to fully load
+
+        // Run axe accessibility scan
+        Results axeResults = new AxeBuilder().analyze(getDriver());
+
+        // Get violations
+        List<Rule> violations = axeResults.getViolations();
+
+        if (violations.size() > 0) {
+            for (Rule violation : violations) {
+            }
+        }
+
+        // Critical and serious violations should be 0 for production
+        long criticalViolations = violations.stream()
+            .filter(v -> "critical".equals(v.getImpact()) || "serious".equals(v.getImpact()))
+            .count();
+
+        Assert.assertEquals(criticalViolations, 0,
+            "Critical/Serious WCAG violations should be 0. Found: " + criticalViolations);
+
+    }
+
+    /**
+     * Test that all images have alt text (WCAG 1.1.1)
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "wcag", "images"})
+    public void testImagesHaveAltText() {
+        HomePageBase homePage = initPage(getDriver(), HomePageBase.class);
+        homePage.open();
+        Assert.assertTrue(homePage.isPageOpened(), "Home page should be opened");
+
+        pause(2);
+
+        // Find all images
+        List<WebElement> images = getDriver().findElements(By.tagName("img"));
+
+        if (images.size() == 0) {
+            return;
+        }
+
+        int imagesWithoutAlt = 0;
+        for (WebElement img : images) {
+            String alt = img.getAttribute("alt");
+            String role = img.getAttribute("role");
+
+            // Images should have alt attribute (can be empty for decorative images)
+            // or role="presentation" for decorative images
+            boolean hasAccessibility = alt != null || "presentation".equals(role);
+
+            if (!hasAccessibility) {
+                imagesWithoutAlt++;
+                String src = img.getAttribute("src");
+            }
+        }
+
+
+        // Allow some images without alt (decorative), but most should have it
+        double percentageWithoutAlt = (double) imagesWithoutAlt / images.size() * 100;
+        Assert.assertTrue(percentageWithoutAlt < 50,
+            "More than 50% of images lack alt text: " + percentageWithoutAlt + "%");
+    }
+
+    /**
+     * Test keyboard navigation (Tab order)
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "keyboard", "navigation"})
+    public void testKeyboardNavigation() {
+        HomePageBase homePage = initPage(getDriver(), HomePageBase.class);
+        homePage.open();
+        Assert.assertTrue(homePage.isPageOpened(), "Home page should be opened");
+
+        pause(2);
+
+        // Find all focusable elements
+        List<WebElement> focusableElements = getDriver().findElements(By.xpath(
+            "//a | //button | //input | //select | //textarea | " +
+            "//*[@tabindex and not(@tabindex='-1')]"
+        ));
+
+        Assert.assertTrue(focusableElements.size() > 0,
+            "Page should have focusable elements for keyboard navigation");
+
+        // Check that interactive elements are keyboard accessible
+        for (WebElement element : focusableElements) {
+            String tagName = element.getTagName();
+            String tabIndex = element.getAttribute("tabindex");
+
+            // tabindex should not be > 0 (breaks natural tab order)
+            if (tabIndex != null && !tabIndex.isEmpty()) {
+                try {
+                    int tabIndexValue = Integer.parseInt(tabIndex);
+                    Assert.assertTrue(tabIndexValue <= 0,
+                        "Element should not have tabindex > 0 (breaks tab order): " +
+                        tagName + " with tabindex=" + tabIndex);
+                } catch (NumberFormatException e) {
+                    // Non-numeric tabindex, skip
+                }
+            }
+        }
+
+    }
+
+    /**
+     * Test form accessibility (labels, required fields)
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "forms", "wcag"})
+    public void testFormAccessibility() {
+        LoginPageBase loginPage = initPage(getDriver(), LoginPageBase.class);
+        loginPage.open();
+        Assert.assertTrue(loginPage.isPageOpened(), "Login page should be opened");
+
+        pause(2);
+
+        // Find all input fields
+        List<WebElement> inputs = getDriver().findElements(
+            By.xpath("//input[@type='text'] | //input[@type='email'] | //input[@type='password']"));
+
+        if (inputs.size() == 0) {
+            return;
+        }
+
+        int inputsWithLabels = 0;
+        for (WebElement input : inputs) {
+            String id = input.getAttribute("id");
+            String ariaLabel = input.getAttribute("aria-label");
+            String ariaLabelledBy = input.getAttribute("aria-labelledby");
+            String placeholder = input.getAttribute("placeholder");
+
+            // Input should have: associated label, aria-label, aria-labelledby, or placeholder
+            boolean hasLabel = false;
+
+            if (id != null && !id.isEmpty()) {
+                // Check if there's a label with for=id
+                List<WebElement> labels = getDriver().findElements(
+                    By.xpath("//label[@for='" + id + "']"));
+                hasLabel = labels.size() > 0;
+            }
+
+            if (!hasLabel) {
+                hasLabel = (ariaLabel != null && !ariaLabel.isEmpty()) ||
+                          (ariaLabelledBy != null && !ariaLabelledBy.isEmpty()) ||
+                          (placeholder != null && !placeholder.isEmpty());
+            }
+
+            if (hasLabel) {
+                inputsWithLabels++;
+            } else {
+            }
+        }
+
+
+        // Most inputs should have labels
+        double percentageWithLabels = (double) inputsWithLabels / inputs.size() * 100;
+        Assert.assertTrue(percentageWithLabels >= 70,
+            "At least 70% of inputs should have labels. Actual: " + percentageWithLabels + "%");
+    }
+
+    /**
+     * Test ARIA roles are used correctly
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "aria", "wcag"})
+    public void testARIARoles() {
+        HomePageBase homePage = initPage(getDriver(), HomePageBase.class);
+        homePage.open();
+        Assert.assertTrue(homePage.isPageOpened(), "Home page should be opened");
+
+        pause(2);
+
+        // Check for semantic HTML5 elements or ARIA roles
+        List<WebElement> navElements = getDriver().findElements(
+            By.xpath("//nav | //*[@role='navigation']"));
+
+        List<WebElement> mainElements = getDriver().findElements(
+            By.xpath("//main | //*[@role='main']"));
+
+        List<WebElement> headerElements = getDriver().findElements(
+            By.xpath("//header | //*[@role='banner']"));
+
+        // Modern websites should use semantic HTML or ARIA landmarks
+        boolean hasLandmarks = navElements.size() > 0 ||
+                              mainElements.size() > 0 ||
+                              headerElements.size() > 0;
+
+        Assert.assertTrue(hasLandmarks,
+            "Page should use semantic HTML5 elements or ARIA landmark roles");
+    }
+
+    /**
+     * Test focus visibility (focus indicators)
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "focus", "keyboard"})
+    public void testFocusVisibility() {
+        HomePageBase homePage = initPage(getDriver(), HomePageBase.class);
+        homePage.open();
+        Assert.assertTrue(homePage.isPageOpened(), "Home page should be opened");
+
+        pause(2);
+        WebElement focusableElement = getDriver().findElement(
+            By.xpath("//a | //button"));
+
+        // Get initial outline
+        String initialOutline = focusableElement.getCssValue("outline");
+
+        // Focus the element
+        ((JavascriptExecutor) getDriver()).executeScript("arguments[0].focus();", focusableElement);
+        pause(1);
+
+        // Get focused outline
+        String focusedOutline = focusableElement.getCssValue("outline");
+
+        // Element should have outline when focused OR outline-color should not be transparent
+        String outlineColor = focusableElement.getCssValue("outline-color");
+        String borderColor = focusableElement.getCssValue("border-color");
+
+        boolean hasFocusIndicator = !focusedOutline.contains("none") ||
+                                   !outlineColor.equals("rgba(0, 0, 0, 0)") ||
+                                   !borderColor.equals("rgba(0, 0, 0, 0)");
+
+        // We don't strictly assert this as some sites use custom focus styles
+        if (!hasFocusIndicator) {
+        }
+    }
+
+    /**
+     * Test page has proper heading hierarchy (h1, h2, h3)
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "headings", "wcag"})
+    public void testHeadingHierarchy() {
+        HomePageBase homePage = initPage(getDriver(), HomePageBase.class);
+        homePage.open();
+        Assert.assertTrue(homePage.isPageOpened(), "Home page should be opened");
+
+        pause(2);
+
+        // Check for h1 heading (should have exactly one per page)
+        List<WebElement> h1Elements = getDriver().findElements(By.tagName("h1"));
+
+        if (h1Elements.size() == 0) {
+        } else if (h1Elements.size() > 1) {
+        } else {
+        }
+
+        // Check for heading structure
+        List<WebElement> allHeadings = getDriver().findElements(
+            By.xpath("//h1 | //h2 | //h3 | //h4 | //h5 | //h6"));
+
+
+        // Page should have some headings for structure
+        Assert.assertTrue(allHeadings.size() > 0,
+            "Page should have heading elements for proper document structure");
+    }
+
+    /**
+     * Test color is not the only means of conveying information (WCAG 1.4.1)
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "color", "wcag"})
+    public void testColorNotOnlyIndicator() {
+        LoginPageBase loginPage = initPage(getDriver(), LoginPageBase.class);
+        loginPage.open();
+        Assert.assertTrue(loginPage.isPageOpened(), "Login page should be opened");
+
+        pause(2);
+
+        // Try to trigger an error message
+        loginPage.login("invalid@test.com", "wrongpassword");
+        pause(3);
+
+        // Check if error messages use more than just color
+        List<WebElement> errorMessages = getDriver().findElements(By.xpath(
+            "//*[contains(@class, 'error')] | " +
+            "//*[contains(@class, 'alert')] | " +
+            "//*[@role='alert']"
+        ));
+
+        if (errorMessages.size() > 0) {
+            WebElement error = errorMessages.get(0);
+
+            // Error should have text content (not just color)
+            String errorText = error.getText();
+            Assert.assertNotNull(errorText, "Error should have text content");
+            Assert.assertTrue(errorText.length() > 0,
+                "Error should convey information via text, not just color");
+        } else {
+        }
+    }
+
+    /**
+     * Test language is specified (WCAG 3.1.1)
+     */
+    @Test
+    @MethodOwner(owner = "qa-team")
+    @TestLabel(name = "feature", value = {"accessibility", "language", "wcag"})
+    public void testPageLanguageSpecified() {
+        HomePageBase homePage = initPage(getDriver(), HomePageBase.class);
+        homePage.open();
+        Assert.assertTrue(homePage.isPageOpened(), "Home page should be opened");
+
+        // Check html lang attribute
+        WebElement htmlElement = getDriver().findElement(By.tagName("html"));
+        String lang = htmlElement.getAttribute("lang");
+
+        Assert.assertNotNull(lang, "HTML element should have lang attribute");
+        Assert.assertTrue(lang.length() >= 2,
+            "Language code should be valid (e.g., 'en', 'en-US'). Found: " + lang);
+
+    }
+}

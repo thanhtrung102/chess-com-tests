@@ -1,0 +1,55 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="UI Testing Suite" verbose="1" parallel="tests" thread-count="3">
+    <test name="Visual Regression Tests">
+        <classes>
+            <class name="com.chess.tests.VisualRegressionTests">
+                <methods>
+                    <include name="testLogoStyling"/>
+                    <include name="testNavigationButtonStyling"/>
+                    <include name="testTypographyHierarchy"/>
+                    <include name="testColorContrast"/>
+                    <include name="testInteractiveElementHoverStates"/>
+                    <include name="testChessboardVisualRendering"/>
+                    <include name="testScreenshotCapture"/>
+                    <include name="testElementSpacing"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Responsive Layout Tests">
+        <classes>
+            <class name="com.chess.tests.ResponsiveLayoutTests">
+                <methods>
+                    <include name="testMobileViewportHomePage"/>
+                    <include name="testMobileNavigation"/>
+                    <include name="testTabletViewportHomePage"/>
+                    <include name="testDesktopViewportHomePage"/>
+                    <include name="testChessboardResponsiveness"/>
+                    <include name="testNoHorizontalScrolling"/>
+                    <include name="testContentReflow"/>
+                    <include name="testTouchFriendlyElements"/>
+                    <include name="testViewportMetaTag"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Accessibility Tests">
+        <classes>
+            <class name="com.chess.tests.AccessibilityTests">
+                <methods>
+                    <include name="testWCAGComplianceHomePage"/>
+                    <include name="testImagesHaveAltText"/>
+                    <include name="testKeyboardNavigation"/>
+                    <include name="testFormAccessibility"/>
+                    <include name="testARIARoles"/>
+                    <include name="testFocusVisibility"/>
+                    <include name="testHeadingHierarchy"/>
+                    <include name="testColorNotOnlyIndicator"/>
+                    <include name="testPageLanguageSpecified"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>
